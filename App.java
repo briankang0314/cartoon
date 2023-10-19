@@ -25,10 +25,9 @@ public class App extends Application {
         Scene scene = new Scene(root, 800, 600);
 
         stage.setScene(scene);
-        stage.setTitle("My Cartoon");
         stage.show();
-
         root.requestFocus();
+        System.out.println("You may press keys.");
     }
 
     /*
