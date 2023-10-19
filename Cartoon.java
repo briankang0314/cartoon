@@ -6,9 +6,7 @@ import javafx.animation.KeyValue;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.layout.Pane;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Ellipse;
 import javafx.scene.shape.Line;
@@ -18,7 +16,6 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.paint.Color;
 
 public class Cartoon {
     private Pane _cartoonPane;
@@ -37,43 +34,62 @@ public class Cartoon {
         this.setupKeyHandler();
     }
 
-    private void setupSun() {
-        _sun = new Circle(40, Color.GOLD);  // Adjusted size and color
-        _sun.setCenterX(100);
-        _sun.setCenterY(100);
-        _cartoonPane.getChildren().add(_sun);
+    private Group _sunGroup;  // Add this field to hold the sun and its rays
 
-        for (int i = 0; i < 8; i++) {
+    private void setupSun() {
+        _sun = new Circle(40, Color.GOLD);
+        _sun.setCenterX(0);  // Changed to 0
+        _sun.setCenterY(0);  // Changed to 0
+
+        RadialGradient gradient = new RadialGradient(
+                0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE,
+                new Stop(0, Color.YELLOW),
+                new Stop(1, Color.ORANGE)
+        );
+        _sun.setFill(gradient);
+
+        _sunGroup = new Group();  // Initialize the sun group
+        _sunGroup.getChildren().add(_sun);  // Add the sun to the group
+
+        for (int i = 0; i < 16; i++) {
             Line ray = new Line();
-            ray.setStartX(_sun.getCenterX());
-            ray.setStartY(_sun.getCenterY());
-            ray.setEndX(_sun.getCenterX() + Math.cos(Math.toRadians(i * 45)) * 60);  // Adjusted length
-            ray.setEndY(_sun.getCenterY() + Math.sin(Math.toRadians(i * 45)) * 60);  // Adjusted length
+            ray.setStartX(0);  // Changed to 0
+            ray.setStartY(0);  // Changed to 0
+            double length = 60 + i % 2 * 20;
+            ray.setEndX(Math.cos(Math.toRadians(i * 22.5)) * length);  // Adjusted
+            ray.setEndY(Math.sin(Math.toRadians(i * 22.5)) * length);  // Adjusted
             ray.setStroke(Color.ORANGE);
-            ray.setStrokeWidth(2);  // Adjusted stroke width
-            _cartoonPane.getChildren().add(ray);
+            ray.setStrokeWidth(2);
+            ray.setOpacity(0.7 + i % 2 * 0.3);
+            _sunGroup.getChildren().add(ray);  // Add the ray to the group
         }
+
+        _sunGroup.setLayoutX(100 + _sun.getRadius());  // Set the group's position
+        _sunGroup.setLayoutY(100 + _sun.getRadius());  // Set the group's position
+
+        _cartoonPane.getChildren().add(_sunGroup);  // Add the group to the pane
     }
 
     private void setupFlower() {
-        _flower = new Group();  // Initialize _flower as a new Group
+        _flower = new Group();
 
         for (int i = 0; i < 5; i++) {
             Ellipse petal = new Ellipse(350, 350, 15, 35);
-            petal.setFill(Color.LIGHTPINK);
+            petal.setFill(Color.TRANSPARENT);  // Set initial fill to transparent
             petal.setStroke(Color.PURPLE);
             petal.setStrokeWidth(2);
             petal.setRotate(i * 72);
-            _flower.getChildren().add(petal);  // Add petal to _flower group
+            _flower.getChildren().add(petal);
         }
 
         Line stem = new Line(350, 350, 350, 450);
         stem.setStroke(Color.DARKGREEN);
         stem.setStrokeWidth(4);
-        _flower.getChildren().add(stem);  // Add stem to _flower group
+        _flower.getChildren().add(stem);
 
-        _cartoonPane.getChildren().add(_flower);  // Add _flower group to the pane
+        _cartoonPane.getChildren().add(_flower);
     }
+
 
     private void setupGrassField() {
         Rectangle grass = new Rectangle(800, 300);
@@ -131,39 +147,56 @@ public class Cartoon {
 
         switch(event.getCode()) {
             case A:
-                _sun.setCenterX(_sun.getCenterX() - 10);
-                System.out.println("Sun Position: " + _sun.getCenterX());  // Print the sun's position
+                _sunGroup.setLayoutX(_sunGroup.getLayoutX() - 10);
+                if (_sunGroup.getLayoutX() < 0) {
+                    _sunGroup.setLayoutX(0);
+                }
                 break;
             case D:
-                _sun.setCenterX(_sun.getCenterX() + 10);
-                System.out.println("Sun Position: " + _sun.getCenterX());  // Print the sun's position
+                _sunGroup.setLayoutX(_sunGroup.getLayoutX() + 10);
+                if (_sunGroup.getLayoutX() > _cartoonPane.getWidth() - _sun.getRadius() * 2) {
+                    _sunGroup.setLayoutX(_cartoonPane.getWidth() - _sun.getRadius() * 2);
+                }
                 break;
             default:
                 break;
         }
 
-        boolean isSunAboveFlower = _sun.getCenterX() > _flower.getBoundsInParent().getMinX() &&
-                _sun.getCenterX() < _flower.getBoundsInParent().getMaxX();
+        // Print the current positions of the sun and the flower
+        System.out.println("Sun X Position: " + _sunGroup.getLayoutX());
+        System.out.println("Flower Min X Position: " + _flower.getBoundsInParent().getMinX());
+        System.out.println("Flower Max X Position: " + _flower.getBoundsInParent().getMaxX());
+
+        boolean isSunAboveFlower = _sunGroup.getLayoutX() > _flower.getBoundsInParent().getMinX() &&
+                _sunGroup.getLayoutX() < _flower.getBoundsInParent().getMaxX();
+
+        System.out.println("Is Sun Above Flower: " + isSunAboveFlower);  // Print the condition result
 
         if (isSunAboveFlower) {
             _label.setText("Flower has blossomed");
+
             for (Node petal : _flower.getChildren()) {
                 if (petal instanceof Ellipse) {
                     ((Ellipse) petal).setFill(Color.YELLOW);
+                    ((Ellipse) petal).setStroke(Color.PURPLE);
+                    System.out.println("Petal Color Changed to Yellow");  // Print when the petal color changes
                 }
             }
         } else {
             _label.setText("Flower is photosynthesizing");
+
             for (Node petal : _flower.getChildren()) {
                 if (petal instanceof Ellipse) {
                     ((Ellipse) petal).setFill(Color.TRANSPARENT);
-                    System.out.println("Petals should be transparent now.");  // Print when petals should be transparent
+                    ((Ellipse) petal).setStroke(Color.PURPLE);
+                    System.out.println("Petal Color Changed to Transparent");  // Print when the petal color changes
                 }
             }
         }
 
         event.consume();
     }
+
 
     public Pane getRootPane() {
         return _cartoonPane;
